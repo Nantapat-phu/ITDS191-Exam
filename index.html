@@ -69,19 +69,7 @@
     white-space: nowrap;
   }
 
-  /* Progress bar */
-  .progress-bar-wrap {
-    background: var(--progress-bg);
-    height: 3px;
-    position: sticky;
-    top: 61px;
-    z-index: 99;
-  }
-  .progress-bar-fill {
-    background: var(--accent);
-    height: 100%;
-    transition: width 0.4s ease;
-  }
+  /* Progress bar (question completion) - handled by timer bar now */
 
   /* Main layout */
   .container {
@@ -353,12 +341,101 @@
   }
   .restart-btn:hover { background: #234e24; }
 
+
+
+  /* Header right cluster */
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .timer-display {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    min-width: 52px;
+    text-align: right;
+  }
+
+  /* Start screen */
+  .start-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 70vh;
+    text-align: center;
+    padding: 20px;
+  }
+  .start-icon {
+    font-size: 56px;
+    margin-bottom: 20px;
+    line-height: 1;
+  }
+  .start-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .start-sub {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+    line-height: 1.7;
+  }
+  .start-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    width: 100%;
+    max-width: 380px;
+    margin-bottom: 32px;
+  }
+  .start-info-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+  .start-info-card .val {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--accent);
+    font-family: 'IBM Plex Mono', monospace;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .start-info-card .lbl {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .start-btn {
+    padding: 15px 48px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.18s, transform 0.12s;
+    letter-spacing: 0.02em;
+  }
+  .start-btn:hover { background: #234e24; transform: translateY(-1px); }
+  .start-btn:active { transform: translateY(0); }
+
   /* Responsive */
   @media (max-width: 540px) {
     .question-text { font-size: 15px; }
     .option-btn { font-size: 14px; }
     .header-left h1 { font-size: 13px; }
     .question-card { padding: 20px; }
+    .start-info-grid { grid-template-columns: 1fr 1fr; }
   }
 </style>
 </head>
@@ -369,14 +446,16 @@
     <h1>Fundamentals of Computer Ethics</h1>
     <p>Midterm Exam · 110 ข้อ</p>
   </div>
-  <div class="progress-pill" id="progressPill">0 / 110</div>
-</div>
-<div class="progress-bar-wrap">
-  <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+  <div class="header-right">
+    <span class="timer-display" id="timerDisplay" style="display:none">00:00</span>
+    <div class="progress-pill" id="progressPill">0 / 110</div>
+  </div>
 </div>
 
+
 <div class="container">
-  <div id="quizArea"></div>
+  <div id="startScreen"></div>
+  <div id="quizArea" style="display:none"></div>
   <div class="result-screen" id="resultScreen"></div>
 </div>
 
@@ -532,12 +611,12 @@ const QUESTIONS = [
     topic: 1,
     q: "Phishing คืออะไร?",
     options: [
-      "การหลอกลวงให้ผู้ใช้เปิดเผยข้อมูลส่วนตัวหรือข้อมูลล็อกอิน",
       "การโจมตีโดยการเดารหัสผ่านทีละตัวอักษร",
+      "การหลอกลวงให้ผู้ใช้เปิดเผยข้อมูลส่วนตัวหรือข้อมูลล็อกอิน",
       "การติดตั้งซอฟต์แวร์ที่ซ่อนอยู่โดยไม่รู้ตัว",
       "การโจมตีเครือข่ายด้วยปริมาณข้อมูลมหาศาล"
     ],
-    answer: 0,
+    answer: 1,
     exp: "Phishing เป็นรูปแบบหนึ่งของการโจมตีทางไซเบอร์ที่ใช้การหลอกลวง (Social Engineering) เพื่อให้ผู้ใช้เปิดเผยข้อมูลส่วนตัว รหัสผ่าน หรือข้อมูลทางการเงิน มักมาในรูปแบบอีเมล ข้อความ หรือเว็บไซต์ปลอม"
   },
   {
@@ -545,11 +624,11 @@ const QUESTIONS = [
     q: "Worm (หนอน) แตกต่างจาก Virus อย่างไร?",
     options: [
       "Worm ต้องอาศัยไฟล์พาหะในการแพร่กระจาย ในขณะที่ Virus แพร่กระจายเองได้",
-      "Worm ไม่สร้างความเสียหาย แต่ Virus สร้างความเสียหายร้ายแรง",
       "Worm สามารถแพร่กระจายตัวเองผ่านเครือข่ายได้โดยไม่ต้องอาศัยไฟล์พาหะ",
+      "Worm ไม่สร้างความเสียหาย แต่ Virus สร้างความเสียหายร้ายแรง",
       "Worm และ Virus ทำงานเหมือนกันทุกประการ"
     ],
-    answer: 2,
+    answer: 1,
     exp: "Worm เป็นโปรแกรมที่ถูกออกแบบมาให้สามารถคัดลอกและแพร่กระจายตัวเองได้จากเครื่องคอมพิวเตอร์หนึ่งไปยังอีกเครื่องหนึ่งโดยอาศัยระบบเครือข่าย ต่างจาก Virus ที่ต้องอาศัยไฟล์พาหะและไม่สามารถแพร่กระจายไปยังเครื่องอื่นด้วยตัวเอง"
   },
   {
@@ -568,12 +647,12 @@ const QUESTIONS = [
     topic: 1,
     q: "ข้อใดเป็นวิธีปฏิบัติที่ถูกต้องด้านความปลอดภัยไซเบอร์?",
     options: [
-      "ติดตั้ง Anti-Malware และอัปเดตอย่างสม่ำเสมอ พร้อม Logout เมื่อไม่อยู่หน้าเครื่อง",
       "ใช้รหัสผ่านเดียวกันสำหรับทุกบัญชีเพื่อความสะดวก",
+      "ติดตั้ง Anti-Malware และอัปเดตอย่างสม่ำเสมอ พร้อม Logout เมื่อไม่อยู่หน้าเครื่อง",
       "แชร์รหัสผ่านกับเพื่อนร่วมงานที่ไว้ใจได้",
       "ปิดการอัปเดตซอฟต์แวร์เพื่อไม่ให้ระบบทำงานช้า"
     ],
-    answer: 0,
+    answer: 1,
     exp: "แนวปฏิบัติที่ถูกต้องด้านความปลอดภัยไซเบอร์ได้แก่ ควรแยก User ใช้งานกันของแต่ละบุคคล Logout เมื่อไม่อยู่หน้าเครื่อง ติดตั้ง Anti-Malware และอัปเดตอย่างสม่ำเสมอ"
   },
   {
@@ -581,11 +660,11 @@ const QUESTIONS = [
     q: "Identity Theft (การโจรกรรมเอกลักษณ์บุคคล) คืออะไร?",
     options: [
       "การขโมยทรัพย์สินทางกายภาพของบุคคล",
+      "การนำข้อมูลส่วนบุคคลของผู้อื่นไปใช้ในทางผิดกฎหมายโดยไม่ได้รับความยินยอม",
       "การปลอมแปลงเอกสารราชการ",
-      "การใช้ชื่อปลอมในโซเชียลมีเดีย",
-      "การนำข้อมูลส่วนบุคคลของผู้อื่นไปใช้ในทางผิดกฎหมายโดยไม่ได้รับความยินยอม"
+      "การใช้ชื่อปลอมในโซเชียลมีเดีย"
     ],
-    answer: 3,
+    answer: 1,
     exp: "Identity Theft คือการที่ข้อมูลส่วนบุคคลถูกนำไปใช้ในทางผิดกฎหมาย โดยไม่ได้รับความยินยอมจากเจ้าของข้อมูล เหยื่อจะถูกสวมรอยโดยคนร้ายที่แอบเอาข้อมูลส่วนตัวไปใช้ประโยชน์ต่างๆ"
   },
   {
@@ -605,11 +684,11 @@ const QUESTIONS = [
     q: "Trojan Horse (โทรจัน) ทำงานอย่างไร?",
     options: [
       "แพร่กระจายตัวเองผ่านเครือข่ายโดยอัตโนมัติ",
-      "เข้ารหัสไฟล์ทั้งหมดในเครื่องและเรียกค่าไถ่",
       "ดูเหมือนโปรแกรมที่มีประโยชน์ แต่เมื่อเปิดใช้งานจะเริ่มทำงานที่เป็นอันตราย",
+      "เข้ารหัสไฟล์ทั้งหมดในเครื่องและเรียกค่าไถ่",
       "ติดตามพฤติกรรมการใช้งานและส่งข้อมูลออกไปยังผู้โจมตี"
     ],
-    answer: 2,
+    answer: 1,
     exp: "โทรจัน (Trojan) ถูกพัฒนาให้ดูเหมือนโปรแกรมทั่วไปที่มีประโยชน์เพื่อดึงดูดให้ผู้ใช้งานเรียกใช้งาน เมื่อไฟล์ดังกล่าวถูกเปิดใช้งาน โทรจันจะเริ่มทำงานและสร้างความเสียหายต่อระบบ"
   },
   {
@@ -638,11 +717,11 @@ const QUESTIONS = [
     q: "จริยธรรมทางธุรกิจ (Business Ethics) สำคัญต่อองค์กรอย่างไร?",
     options: [
       "ช่วยลดภาษีที่ต้องจ่ายให้กับรัฐบาล",
-      "ทำให้สินค้ามีราคาต่ำกว่าคู่แข่ง",
       "สร้างความน่าเชื่อถือ ลดความเสี่ยง และสร้างความยั่งยืนให้กับธุรกิจ",
+      "ทำให้สินค้ามีราคาต่ำกว่าคู่แข่ง",
       "เพิ่มปริมาณการผลิตได้มากขึ้น"
     ],
-    answer: 2,
+    answer: 1,
     exp: "จริยธรรมทางธุรกิจมีความสำคัญเพราะสร้างความน่าเชื่อถือให้กับองค์กร ลดความเสี่ยงทางกฎหมายและชื่อเสียง และนำไปสู่ความยั่งยืนของธุรกิจในระยะยาว รวมถึงสร้างความสัมพันธ์ที่ดีกับผู้มีส่วนได้ส่วนเสียทุกฝ่าย"
   },
   {
@@ -686,11 +765,11 @@ const QUESTIONS = [
     q: "ตัวอย่างการทำธุรกิจที่ขาดจริยธรรมข้อใดต่อไปนี้ถูกต้อง?",
     options: [
       "การเปิดเผยรายงานทางการเงินที่ถูกต้องตามความเป็นจริง",
-      "การจ่ายภาษีครบตามกฎหมาย",
       "การปั่นหุ้น การฟอกเงิน และการหลอกลวงผู้บริโภค",
+      "การจ่ายภาษีครบตามกฎหมาย",
       "การพัฒนาสินค้าที่มีคุณภาพดีขึ้น"
     ],
-    answer: 2,
+    answer: 1,
     exp: "ตัวอย่างการทำธุรกิจที่ขาดจริยธรรม ได้แก่ การปั่นหุ้น การฟอกเงิน การหลอกลวงผู้บริโภค การเอาเปรียบพนักงาน การทุจริตในสัญญาจัดซื้อ และการปกปิดข้อมูลที่สำคัญต่อผู้มีส่วนได้ส่วนเสีย"
   },
   {
@@ -710,23 +789,23 @@ const QUESTIONS = [
     q: "หลักธรรมาภิบาล (Good Governance) เกี่ยวข้องกับจริยธรรมทางธุรกิจอย่างไร?",
     options: [
       "ไม่มีความเกี่ยวข้องกัน",
+      "ธรรมาภิบาลเป็นหลักการบริหารองค์กรที่โปร่งใส รับผิดชอบ และมีจริยธรรม",
       "ธรรมาภิบาลใช้ได้เฉพาะกับหน่วยงานรัฐบาล",
-      "ธรรมาภิบาลคือกฎหมายที่บังคับใช้กับบริษัทจดทะเบียน",
-      "ธรรมาภิบาลเป็นหลักการบริหารองค์กรที่โปร่งใส รับผิดชอบ และมีจริยธรรม"
+      "ธรรมาภิบาลคือกฎหมายที่บังคับใช้กับบริษัทจดทะเบียน"
     ],
-    answer: 3,
+    answer: 1,
     exp: "ธรรมาภิบาลเป็นหนึ่งในคำศัพท์ที่เกี่ยวข้องกับจริยธรรม หมายถึงหลักการบริหารองค์กรที่มีความโปร่งใส รับผิดชอบต่อผู้มีส่วนได้ส่วนเสีย และดำเนินการด้วยจริยธรรม ซึ่งเป็นส่วนสำคัญของจริยธรรมทางธุรกิจ"
   },
   {
     topic: 2,
     q: "Enron Scandal เป็นตัวอย่างของการขาดจริยธรรมด้านใด?",
     options: [
-      "การทุจริตทางบัญชีและการเงิน ปกปิดหนี้สินและแสดงผลกำไรเท็จ",
       "การละเมิดสิทธิ์ทางปัญญา",
+      "การทุจริตทางบัญชีและการเงิน ปกปิดหนี้สินและแสดงผลกำไรเท็จ",
       "การละเมิดสิทธิ์ผู้บริโภค",
       "การโฆษณาเกินความเป็นจริง"
     ],
-    answer: 0,
+    answer: 1,
     exp: "Enron Scandal เป็นหนึ่งในกรณีตัวอย่างการทำธุรกิจที่ขาดจริยธรรมที่มีชื่อเสียงมากที่สุด โดยผู้บริหารทำการทุจริตทางบัญชีและการเงิน ปกปิดหนี้สิน และแสดงผลกำไรที่ไม่มีอยู่จริง ส่งผลให้บริษัทล้มละลายและนักลงทุนสูญเสียเงินจำนวนมาก"
   },
   {
@@ -1716,15 +1795,113 @@ const QUESTIONS = [
   }
 ];
 
-// State
-let currentQ = 0;
-let answers = new Array(QUESTIONS.length).fill(null);
-let answered = new Array(QUESTIONS.length).fill(false);
+// ─── Shuffle helper ───────────────────────────────────────────────
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
+// Build shuffled question set: each question has shuffled options
+// and a corrected `answer` index pointing to the right option after shuffle
+function buildShuffledQuestions() {
+  return QUESTIONS.map(q => {
+    const correctText = q.options[q.answer];
+    const shuffledOpts = shuffleArray(q.options);
+    const newAnswerIdx = shuffledOpts.indexOf(correctText);
+    return { ...q, options: shuffledOpts, answer: newAnswerIdx };
+  });
+}
+
+// ─── Timer state (stopwatch from 0) ───────────────────────────────
+let timerInterval = null;
+let elapsedSeconds = 0;
+let timerRunning = false;
+
+function startTimer() {
+  timerRunning = true;
+  elapsedSeconds = 0;
+  document.getElementById('timerDisplay').style.display = '';
+  document.getElementById('timerDisplay').textContent = '00:00';
+  timerInterval = setInterval(() => {
+    elapsedSeconds++;
+    updateTimerDisplay();
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerRunning = false;
+}
+
+function formatTime(secs) {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60).toString().padStart(2, '0');
+  const s = (secs % 60).toString().padStart(2, '0');
+  return h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
+}
+
+function updateTimerDisplay() {
+  const display = document.getElementById('timerDisplay');
+  if (!display) return;
+  display.textContent = formatTime(elapsedSeconds);
+}
+
+// ─── Quiz state ───────────────────────────────────────────────────
+let SHUFFLED_Q = [];
+let currentQ = 0;
+let answers = [];
+let answered = [];
+
+// ─── Start Screen ─────────────────────────────────────────────────
+function renderStartScreen() {
+  document.getElementById('startScreen').innerHTML = `
+    <div class="start-screen">
+      <div class="start-icon">📋</div>
+      <div class="start-title">Fundamentals of Computer Ethics</div>
+      <div class="start-sub">แบบทดสอบปลายภาคกลาง · ITDS191<br>ครอบคลุมเนื้อหา 11 หัวข้อ จากสไลด์เรียนทั้งหมด</div>
+      <div class="start-info-grid">
+        <div class="start-info-card">
+          <div class="val">110</div>
+          <div class="lbl">จำนวนข้อ</div>
+        </div>
+        <div class="start-info-card">
+          <div class="val">4</div>
+          <div class="lbl">ตัวเลือก / ข้อ</div>
+        </div>
+        <div class="start-info-card">
+          <div class="val">11</div>
+          <div class="lbl">หัวข้อ</div>
+        </div>
+      </div>
+      <button class="start-btn" onclick="startQuiz()">เริ่มทำแบบทดสอบ →</button>
+    </div>
+  `;
+}
+
+function startQuiz() {
+  SHUFFLED_Q = buildShuffledQuestions();
+  answers = new Array(SHUFFLED_Q.length).fill(null);
+  answered = new Array(SHUFFLED_Q.length).fill(false);
+  currentQ = 0;
+  elapsedSeconds = 0;
+
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('quizArea').style.display = '';
+
+  startTimer();
+  renderQuestion(0);
+}
+
+// ─── Render question ──────────────────────────────────────────────
 function renderQuestion(idx) {
-  const q = QUESTIONS[idx];
+  const q = SHUFFLED_Q[idx];
   const isAnswered = answered[idx];
   const selected = answers[idx];
+  const labels = ['A', 'B', 'C', 'D'];
 
   const html = `
     <div class="topic-badge">
@@ -1732,7 +1909,7 @@ function renderQuestion(idx) {
       หัวข้อ ${q.topic + 1} · ${TOPICS[q.topic]}
     </div>
     <div class="question-card">
-      <div class="question-num">ข้อที่ ${idx + 1} / ${QUESTIONS.length}</div>
+      <div class="question-num">ข้อที่ ${idx + 1} / ${SHUFFLED_Q.length}</div>
       <div class="question-text">${q.q}</div>
       <div class="options-list">
         ${q.options.map((opt, i) => {
@@ -1741,7 +1918,6 @@ function renderQuestion(idx) {
             if (i === q.answer) cls = 'correct';
             else if (i === selected && i !== q.answer) cls = 'wrong';
           } else if (i === selected) cls = 'selected';
-          const labels = ['A', 'B', 'C', 'D'];
           return `<button class="option-btn ${cls}" onclick="selectOption(${idx}, ${i})" ${isAnswered ? 'disabled' : ''}>
             <span class="option-label">${labels[i]}</span>
             <span>${opt}</span>
@@ -1752,7 +1928,7 @@ function renderQuestion(idx) {
         <div class="explanation ${selected === q.answer ? 'correct-exp' : 'wrong-exp'} show">
           ${selected === q.answer
             ? `<strong>✓ ถูกต้อง!</strong> ${q.exp}`
-            : `<strong>✗ ไม่ถูกต้อง</strong> คำตอบที่ถูกคือ <strong>${['A','B','C','D'][q.answer]}. ${q.options[q.answer]}</strong><br>${q.exp}`
+            : `<strong>✗ ไม่ถูกต้อง</strong> คำตอบที่ถูกคือ <strong>${labels[q.answer]}. ${q.options[q.answer]}</strong><br>${q.exp}`
           }
         </div>` : ''}
     </div>
@@ -1760,7 +1936,7 @@ function renderQuestion(idx) {
       <button class="nav-btn back" onclick="goBack()" ${idx === 0 ? 'style="visibility:hidden"' : ''}>← ย้อนกลับ</button>
       ${isAnswered
         ? `<button class="nav-btn next" onclick="goNext()">
-            ${idx === QUESTIONS.length - 1 ? 'ดูผลลัพธ์ →' : 'ข้อถัดไป →'}
+            ${idx === SHUFFLED_Q.length - 1 ? 'ดูผลลัพธ์ →' : 'ข้อถัดไป →'}
           </button>`
         : `<button class="nav-btn next" disabled>กรุณาเลือกคำตอบ</button>`
       }
@@ -1780,7 +1956,7 @@ function selectOption(qIdx, optIdx) {
 }
 
 function goNext() {
-  if (currentQ < QUESTIONS.length - 1) {
+  if (currentQ < SHUFFLED_Q.length - 1) {
     currentQ++;
     renderQuestion(currentQ);
   } else {
@@ -1797,26 +1973,24 @@ function goBack() {
 
 function updateProgress() {
   const done = answered.filter(Boolean).length;
-  const pct = (done / QUESTIONS.length) * 100;
-  document.getElementById('progressPill').textContent = `${done} / ${QUESTIONS.length}`;
-  document.getElementById('progressBar').style.width = pct + '%';
+  const pct = (done / SHUFFLED_Q.length) * 100;
+  document.getElementById('progressPill').textContent = `${done} / ${SHUFFLED_Q.length}`;
 }
 
+// ─── Results ──────────────────────────────────────────────────────
 function showResults() {
+  stopTimer();
   document.getElementById('quizArea').style.display = 'none';
   const rs = document.getElementById('resultScreen');
   rs.classList.add('show');
 
-  const correct = answers.filter((a, i) => a === QUESTIONS[i].answer).length;
-  const pct = Math.round((correct / QUESTIONS.length) * 100);
+  const correct = answers.filter((a, i) => a === SHUFFLED_Q[i].answer).length;
+  const pct = Math.round((correct / SHUFFLED_Q.length) * 100);
+  const timeTaken = formatTime(elapsedSeconds);
 
-  // Calculate per-topic scores
   const topicStats = TOPICS.map((name, ti) => {
-    const qs = QUESTIONS.filter(q => q.topic === ti);
-    const correctInTopic = qs.filter((q, qi) => {
-      const globalIdx = QUESTIONS.indexOf(q);
-      return answers[globalIdx] === q.answer;
-    }).length;
+    const qs = SHUFFLED_Q.map((q, gi) => ({ q, gi })).filter(({ q }) => q.topic === ti);
+    const correctInTopic = qs.filter(({ q, gi }) => answers[gi] === q.answer).length;
     return { name, correct: correctInTopic, total: qs.length };
   });
 
@@ -1836,10 +2010,10 @@ function showResults() {
     <div class="result-score-card">
       <div class="score-circle">
         <div class="score-number">${correct}</div>
-        <div class="score-total">จาก ${QUESTIONS.length}</div>
+        <div class="score-total">จาก ${SHUFFLED_Q.length}</div>
       </div>
       <div class="result-title">${emoji} ${msg}</div>
-      <div class="result-subtitle">คุณได้คะแนน ${pct}% (${correct}/${QUESTIONS.length} ข้อ)</div>
+      <div class="result-subtitle">คะแนน ${pct}% · ใช้เวลา ${timeTaken}</div>
     </div>
 
     <div class="analysis-section">
@@ -1855,7 +2029,6 @@ function showResults() {
           </div>
         </div>
       `).join('')}
-
       ${weakTopics.length > 0 ? `
         <div class="weak-topics">
           <strong>⚠️ หัวข้อที่ควรทบทวนเป็นพิเศษ:</strong><br>
@@ -1871,22 +2044,26 @@ function showResults() {
     <button class="restart-btn" onclick="restart()">🔄 ทำแบบทดสอบใหม่อีกครั้ง</button>
   `;
 
-  updateProgress();
+  document.getElementById('progressPill').textContent = `${SHUFFLED_Q.length} / ${SHUFFLED_Q.length}`;
   window.scrollTo(0, 0);
 }
 
 function restart() {
-  currentQ = 0;
-  answers = new Array(QUESTIONS.length).fill(null);
-  answered = new Array(QUESTIONS.length).fill(false);
-  document.getElementById('quizArea').style.display = '';
+  stopTimer();
+  elapsedSeconds = 0;
   document.getElementById('resultScreen').classList.remove('show');
   document.getElementById('resultScreen').innerHTML = '';
-  renderQuestion(0);
+  document.getElementById('startScreen').style.display = '';
+  document.getElementById('startScreen').innerHTML = '';
+  document.getElementById('timerDisplay').style.display = 'none';
+  document.getElementById('timerDisplay').textContent = '00:00';
+  document.getElementById('timerDisplay').className = 'timer-display';
+  document.getElementById('progressPill').textContent = '0 / 110';
+  renderStartScreen();
 }
 
-// Init
-renderQuestion(0);
+// ─── Init ─────────────────────────────────────────────────────────
+renderStartScreen();
 </script>
 </body>
 </html>
